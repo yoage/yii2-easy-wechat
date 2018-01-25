@@ -2,8 +2,10 @@
     "name": "yoage/yii2-easy-wechat4",
     "description": "WeChat SDK for yii2, based on overtrue/wechat 4.0",
     "keywords": ["yii2","extension","WeChat SDK"],
+    "minimum-stability": "dev",
     "license": "MIT",
     "authors": [
+        {
         {
             "name": "Andy Wong",
             "email": "AndyWongFly@gmail.com"
@@ -15,7 +17,7 @@
     },
     "autoload": {
         "psr-4": {
-            "yoage\\easywechat\\": "src"
+            "yoage\\easywechat\\": ""
         }
     }
 }
