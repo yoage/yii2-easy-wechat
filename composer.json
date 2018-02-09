@@ -16,7 +16,7 @@
     },
     "autoload": {
         "psr-4": {
-            "yoage\\easywechat\\": ""
+            "yoage\\easywechat\\": "src"
         }
     }
 }
