@@ -11,10 +11,21 @@ use yii\base\Component;
 use EasyWeChat\Factory;
 use Yii;
 
+/**
+ * Class WeChatBase
+ * @package yoage\easywechat
+ *
+ * @property WeChatUser $user
+ * @property  bool      isWechat
+ */
 class WeChatBase extends Component
 {
 
-	public $_user;
+	/**
+	 * @var WeChatUser
+	 */
+	public static $_user;
+
 
 	private $_app;
 
@@ -23,9 +34,25 @@ class WeChatBase extends Component
 	private $_payment;
 
 	/**
-	 * @var array 配置信息
+	 * @var array config information
 	 */
 	public $config;
+
+	/**
+	 * user identity class params
+	 * @var array
+	 */
+	public $userOptions = [];
+	/**
+	 * wechat user info will be stored in session under this key
+	 * @var string
+	 */
+	public $sessionParam = '_wechatUser';
+	/**
+	 * returnUrl param stored in session
+	 * @var string
+	 */
+	public $returnUrlParam = '_wechatReturnUrl';
 
 	public function init()
 	{
@@ -34,7 +61,10 @@ class WeChatBase extends Component
 		$this->config = isset(Yii::$app->params['wechat_config']) ? Yii::$app->params['wechat_config'] : null;
 	}
 
-
+	/**
+	 * official account app
+	 * @return \EasyWeChat\OfficialAccount\Application
+	 */
 	public function getApp()
 	{
 		if (!$this->_app instanceof \EasyWeChat\OfficialAccount\Application) {
@@ -44,6 +74,10 @@ class WeChatBase extends Component
 		return $this->_app;
 	}
 
+	/**
+	 * mini program app
+	 * @return \EasyWeChat\MiniProgram\Application
+	 */
 	public function getMiniApp()
 	{
 		if (!$this->_miniApp instanceof \EasyWeChat\MiniProgram\Application) {
@@ -53,6 +87,10 @@ class WeChatBase extends Component
 		return $this->_miniApp;
 	}
 
+	/**
+	 * this one for all payment
+	 * @return \EasyWeChat\Payment\Application
+	 */
 	public function getPayment()
 	{
 
@@ -61,6 +99,122 @@ class WeChatBase extends Component
 		}
 
 		return $this->_payment;
+	}
+
+	/**
+	 * @return yii\web\Response
+	 */
+	public function authorizeRequired()
+	{
+		if (Yii::$app->request->get('code')) {
+
+			// callback and authorize
+			return $this->authorize($this->getApp()->oauth->user());
+		} else {
+
+			//setup the return url before for callback
+			$this->setReturnUrl(Yii::$app->request->getUrl());
+
+			// redirect to wechat authorize page
+			return Yii::$app->response->redirect($this->getApp()->oauth->redirect()->getTargetUrl());
+
+		}
+	}
+
+	/**
+	 * @param \Overtrue\Socialite\User $user
+	 * @return yii\web\Response
+	 */
+	public function authorize(\Overtrue\Socialite\User $user)
+	{
+		Yii::$app->session->set($this->sessionParam, $user->toJSON());
+
+		return Yii::$app->response->redirect($this->getReturnUrl());
+	}
+
+	/**
+	 * check if current user authorized
+	 * @return bool
+	 */
+	public function isAuthorized()
+	{
+		$hasSession = Yii::$app->session->has($this->sessionParam);
+		$sessionVal = Yii::$app->session->get($this->sessionParam);
+
+		return ($hasSession && !empty($sessionVal));
+	}
+
+	/**
+	 * @param string|array $url
+	 */
+	public function setReturnUrl($url)
+	{
+		Yii::$app->session->set($this->returnUrlParam, $url);
+	}
+
+	/**
+	 * @param null $defaultUrl
+	 * @return mixed|null|string
+	 */
+	public function getReturnUrl($defaultUrl = null)
+	{
+		$url = Yii::$app->getSession()->get($this->returnUrlParam, $defaultUrl);
+		if (is_array($url)) {
+			if (isset($url[0])) {
+				return Yii::$app->getUrlManager()->createUrl($url);
+			} else {
+				$url = null;
+			}
+		}
+
+		return $url === null ? Yii::$app->getHomeUrl() : $url;
+	}
+
+	/**
+	 *
+	 * @return bool|WechatUser
+	 */
+	public function getUser()
+	{
+		if (!$this->isAuthorized()) {
+			return false;
+		}
+
+		if (!self::$_user instanceof WechatUser) {
+			$userInfo    = Yii::$app->session->get($this->sessionParam);
+			$config      = $userInfo ? json_decode($userInfo, true) : [];
+			self::$_user = new WechatUser($config);
+		}
+
+		return self::$_user;
+	}
+
+	/**
+	 * overwrite the getter in order to be compatible with this component
+	 * @param $name
+	 * @return mixed
+	 * @throws \Exception
+	 */
+	public function __get($name)
+	{
+		try {
+			return parent::__get($name);
+		}catch (\Exception $e) {
+			if($this->getApp()->$name) {
+				return $this->app->$name;
+			}else{
+				throw $e->getPrevious();
+			}
+		}
+	}
+
+	/**
+	 * check if client is wechat
+	 * @return bool
+	 */
+	public function getIsWechat()
+	{
+		return strpos($_SERVER["HTTP_USER_AGENT"], "MicroMessenger") !== false;
 	}
 
 }
