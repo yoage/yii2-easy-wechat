@@ -11,7 +11,7 @@ namespace yoage\easywechat;
 use yii\base\Component;
 
 /**
- * Class WechatUser
+ * Class WeChatUser
  * @package common\components
  *
  * @property string $openId

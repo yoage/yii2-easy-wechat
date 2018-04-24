@@ -47,7 +47,7 @@ class WeChatBase extends Component
 	 * wechat user info will be stored in session under this key
 	 * @var string
 	 */
-	public $sessionParam = '_wechatUser';
+	public $sessionParam = '_WeChatUser';
 	/**
 	 * returnUrl param stored in session
 	 * @var string
@@ -172,7 +172,7 @@ class WeChatBase extends Component
 
 	/**
 	 *
-	 * @return bool|WechatUser
+	 * @return bool|WeChatUser
 	 */
 	public function getUser()
 	{
@@ -180,10 +180,10 @@ class WeChatBase extends Component
 			return false;
 		}
 
-		if (!self::$_user instanceof WechatUser) {
+		if (!self::$_user instanceof WeChatUser) {
 			$userInfo    = Yii::$app->session->get($this->sessionParam);
 			$config      = $userInfo ? json_decode($userInfo, true) : [];
-			self::$_user = new WechatUser($config);
+			self::$_user = new WeChatUser($config);
 		}
 
 		return self::$_user;
